@@ -1,0 +1,55 @@
+#!/bin/sh
+usage () {
+echo "usage: configure [-h|--help|-d|--debug]"
+echo "usage: configure [-h|--help|-d|--debug]"
+cat <<EOF
+usage: configure [ <option> ... ]
+
+where '<option>' is one of the following:
+
+-c | --check         include assertion checking (default for '--debug')
+-d | --debug | -g    enable debugging (implies '-d', '-l', and '-s')
+-h | --help          print this command line option summary
+-l | --logging       include logging code (default for '--debug')
+-s | --symbols       include symbol table (default for '--debug')
+     --sanitize      use '-fsanitize=address,undefined' sanitizers
+EOF
+exit 1
+}
+die () {
+  echo "configure: error: $*" 1>&2
+  exit 1
+}
+check=no
+debug=no
+logging=no
+symbols=no
+sanitize=no
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -c|--check) debug=yes;;
+    -g | -d|--debug) debug=yes;;
+    -h|--help) usage;;
+    -l|--logging) logging=yes;;
+    -s|--symbols) symbols=yes;;
+    --sanitize) sanitize=yes;;
+    *) die "invalid option '$1' (try '-h')";;
+  esac
+  shift
+done
+
+COMPILE="g++ -Wall"
+
+[ $debug = yes ] && check=yes
+[ $debug = yes ] && logging=yes
+[ $debug = yes ] && symbols=yes
+
+[ $symbols = yes ] && COMPILE="$COMPILE -g"
+[ $debug = no ] && COMPILE="$COMPILE -O3"
+[ $sanitize = yes ] && COMPILE="$COMPILE -fsanitize=address,undefined"
+[ $logging = yes ] && COMPILE="$COMPILE -DLOGGING"
+[ $check = no ] && COMPILE="$COMPILE -DNDEBUG"
+
+echo "configure: using '$COMPILE'"
+sed -e "s#@COMPILE@#$COMPILE#" makefile.in > makefile
